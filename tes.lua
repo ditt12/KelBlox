@@ -1,56 +1,44 @@
--- Script Lokal (LocalScript) untuk UI
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local player = game.Players.LocalPlayer
+local gui = script.Parent -- ScreenGui
+local frame = gui.Frame
 
--- Buat ScreenGui jika belum ada
-local screenGui = playerGui:FindFirstChild("CopyJobIdGui") or Instance.new("ScreenGui")
-screenGui.Name = "CopyJobIdGui"
-screenGui.Parent = playerGui
+-- Ambil komponen UI
+local walkSpeedBox = frame.WalkSpeedBox -- TextBox untuk WalkSpeed
+local jumpPowerBox = frame.JumpPowerBox -- TextBox untuk JumpPower
+local applyButton = frame.ApplyButton -- TextButton untuk menerapkan
+local resetButton = frame.ResetButton -- TextButton untuk reset
 
--- Buat Frame
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 50)
-frame.Position = UDim2.new(0.5, -100, 0, 10)
-frame.AnchorPoint = Vector2.new(0.5, 0)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.Parent = screenGui
+-- Nilai default
+local defaultWalkSpeed = 16
+local defaultJumpPower = 50
 
--- Buat TextButton
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0.9, 0, 0.8, 0)
-button.Position = UDim2.new(0.05, 0, 0.1, 0)
-button.Text = "Salin Job ID"
-button.TextColor3 = Color3.new(1, 1, 1)
-button.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-button.Parent = frame
-
--- Fungsi untuk menyalin Job ID
-local function copyJobId()
-    local jobId = game.JobId
+-- Fungsi update speed & jump
+local function updateStats()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
     
-    if jobId == "" then
-        button.Text = "Server Pribadi"
-        task.wait(2)
-        button.Text = "Salin Job ID"
-        return
-    end
+    -- Ambil nilai dari TextBox (pastikan angka)
+    local newSpeed = tonumber(walkSpeedBox.Text) or defaultWalkSpeed
+    local newJump = tonumber(jumpPowerBox.Text) or defaultJumpPower
     
-    -- Untuk Roblox Studio (tidak bisa benar-benar copy)
-    if not game:GetService("UserInputService"):GetPlatform() == Enum.Platform.Windows then
-        button.Text = "Job ID: "..jobId
-        task.wait(2)
-        button.Text = "Salin Job ID"
-        return
-    end
+    -- Terapkan perubahan
+    humanoid.WalkSpeed = newSpeed
+    humanoid.JumpPower = newJump
     
-    -- Untuk game Roblox asli (menggunakan Clipboard)
-    pcall(function()
-        setclipboard(jobId)
-        button.Text = "Tersalin!"
-        task.wait(2)
-        button.Text = "Salin Job ID"
-    end)
+    print("WalkSpeed:", humanoid.WalkSpeed, "| JumpPower:", humanoid.JumpPower)
 end
 
-button.MouseButton1Click:Connect(copyJobId)
+-- Fungsi reset ke default
+local function resetStats()
+    walkSpeedBox.Text = tostring(defaultWalkSpeed)
+    jumpPowerBox.Text = tostring(defaultJumpPower)
+    updateStats() -- Panggil fungsi update
+end
+
+-- Event listeners
+applyButton.MouseButton1Click:Connect(updateStats)
+resetButton.MouseButton1Click:Connect(resetStats)
+
+-- Set nilai default di UI saat pertama kali
+walkSpeedBox.Text = tostring(defaultWalkSpeed)
+jumpPowerBox.Text = tostring(defaultJumpPower)
