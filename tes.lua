@@ -1,44 +1,18 @@
-local player = game.Players.LocalPlayer
-local gui = script.Parent -- ScreenGui
-local frame = gui.Frame
+local HttpService = game:GetService("HttpService")
 
--- Ambil komponen UI
-local walkSpeedBox = frame.WalkSpeedBox -- TextBox untuk WalkSpeed
-local jumpPowerBox = frame.JumpPowerBox -- TextBox untuk JumpPower
-local applyButton = frame.ApplyButton -- TextButton untuk menerapkan
-local resetButton = frame.ResetButton -- TextButton untuk reset
+local webhookURL = "https://discord.com/api/webhooks/1381242557459075212/KNYM0-8i6pQgQyqbYFcY318HrKKuhuWYwlBS4gUTTEukozLJPL2adEhBM86QRJwJX2G9"  -- Ganti dengan URL webhookmu!
 
--- Nilai default
-local defaultWalkSpeed = 16
-local defaultJumpPower = 50
+local data = {
+    ["content"] = "Ada player baru nih!",
+    ["embeds"] = {{
+        ["title"] = "Info Player",
+        ["description"] = "Nama: " .. player.Name,
+        ["color"] = 65280  -- Warna hijau
+    }}
+}
 
--- Fungsi update speed & jump
-local function updateStats()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-    
-    -- Ambil nilai dari TextBox (pastikan angka)
-    local newSpeed = tonumber(walkSpeedBox.Text) or defaultWalkSpeed
-    local newJump = tonumber(jumpPowerBox.Text) or defaultJumpPower
-    
-    -- Terapkan perubahan
-    humanoid.WalkSpeed = newSpeed
-    humanoid.JumpPower = newJump
-    
-    print("WalkSpeed:", humanoid.WalkSpeed, "| JumpPower:", humanoid.JumpPower)
-end
+local headers = {
+    ["Content-Type"] = "application/json"
+}
 
--- Fungsi reset ke default
-local function resetStats()
-    walkSpeedBox.Text = tostring(defaultWalkSpeed)
-    jumpPowerBox.Text = tostring(defaultJumpPower)
-    updateStats() -- Panggil fungsi update
-end
-
--- Event listeners
-applyButton.MouseButton1Click:Connect(updateStats)
-resetButton.MouseButton1Click:Connect(resetStats)
-
--- Set nilai default di UI saat pertama kali
-walkSpeedBox.Text = tostring(defaultWalkSpeed)
-jumpPowerBox.Text = tostring(defaultJumpPower)
+HttpService:PostAsync(webhookURL, HttpService:JSONEncode(data), Enum.HttpContentType.ApplicationJson, false, headers)
