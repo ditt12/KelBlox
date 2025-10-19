@@ -57,7 +57,7 @@ MoveButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MoveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MoveButton.TextSize = 18
 MoveButton.Font = Enum.Font.SourceSansBold
-MoveButton.Text = "Pindah Pos"
+MoveButton.Text = "pindah posisi"
 
 setPosition(positions[currentIndex])
 
