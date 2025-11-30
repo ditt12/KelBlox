@@ -1,0 +1,104 @@
+local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "StatsGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local FpsLabel = Instance.new("TextLabel")
+local PingLabel = Instance.new("TextLabel")
+local MoveButton = Instance.new("TextButton")
+
+local positions = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
+local currentIndex = 1
+
+local function setPosition(pos)
+	if pos == "TopLeft" then
+		FpsLabel.Position = UDim2.new(0, 10, 0, 10)
+		PingLabel.Position = UDim2.new(0, 10, 0, 35)
+		MoveButton.Position = UDim2.new(0, 10, 0, 65)
+	elseif pos == "TopRight" then
+		FpsLabel.Position = UDim2.new(1, -210, 0, 10)
+		PingLabel.Position = UDim2.new(1, -210, 0, 35)
+		MoveButton.Position = UDim2.new(1, -110, 0, 65)
+	elseif pos == "BottomLeft" then
+		FpsLabel.Position = UDim2.new(0, 10, 1, -60)
+		PingLabel.Position = UDim2.new(0, 10, 1, -35)
+		MoveButton.Position = UDim2.new(0, 10, 1, -90)
+	elseif pos == "BottomRight" then
+		FpsLabel.Position = UDim2.new(1, -210, 1, -60)
+		PingLabel.Position = UDim2.new(1, -210, 1, -35)
+		MoveButton.Position = UDim2.new(1, -110, 1, -90)
+	end
+end
+
+FpsLabel.Parent = ScreenGui
+FpsLabel.Size = UDim2.new(0, 200, 0, 25)
+FpsLabel.BackgroundTransparency = 1
+FpsLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+FpsLabel.TextStrokeTransparency = 0.5
+FpsLabel.TextSize = 20
+FpsLabel.Font = Enum.Font.SourceSansBold
+FpsLabel.Text = "FPS: ..."
+
+PingLabel.Parent = ScreenGui
+PingLabel.Size = UDim2.new(0, 200, 0, 25)
+PingLabel.BackgroundTransparency = 1
+PingLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+PingLabel.TextStrokeTransparency = 0.5
+PingLabel.TextSize = 20
+PingLabel.Font = Enum.Font.SourceSansBold
+PingLabel.Text = "Ping: ..."
+
+MoveButton.Parent = ScreenGui
+MoveButton.Size = UDim2.new(0, 90, 0, 25)
+MoveButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MoveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MoveButton.TextSize = 18
+MoveButton.Font = Enum.Font.SourceSansBold
+MoveButton.Text = "pindah posisi"
+
+setPosition(positions[currentIndex])
+
+MoveButton.MouseButton1Click:Connect(function()
+	currentIndex = currentIndex + 1
+	if currentIndex > #positions then
+		currentIndex = 1
+	end
+	setPosition(positions[currentIndex])
+end)
+
+local frames = 0
+local lastTime = tick()
+runService.RenderStepped:Connect(function()
+	frames += 1
+	local currentTime = tick()
+	if currentTime - lastTime >= 1 then
+		local fps = frames / (currentTime - lastTime)
+		FpsLabel.Text = string.format("FPS: %.0f", fps)
+		if fps >= 50 then
+			FpsLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+		elseif fps >= 30 then
+			FpsLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+		else
+			FpsLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+		end
+		frames = 0
+		lastTime = currentTime
+	end
+end)
+
+task.spawn(function()
+	while task.wait(1) do
+		local ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
+		PingLabel.Text = "Ping: " .. ping .. " ms"
+		if ping <= 80 then
+			PingLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+		elseif ping <= 150 then
+			PingLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+		else
+			PingLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+		end
+	end
+end)
