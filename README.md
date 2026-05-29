@@ -1,4 +1,4 @@
 ## Usage
 ```bash
-loadstring(game:HttpGet("https://raw.githubusercontent.com/ditt12/KelBlox/main/fps"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ditt12/KelBlox/main/snapui"))()
 ```
