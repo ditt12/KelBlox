@@ -1,76 +1,37 @@
--- AIMBOT SNAP + ESP + UI (WITH TOGGLE & ESP REFRESH)
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
+local Window = Rayfield:CreateWindow({
+    Name = "SHNYHUB",
+    LoadingTitle = "Loading UI",
+    LoadingSubtitle = "SHNYHUB is Loading...",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "SHNY",
+        FileName = "Settings"
+    }
+})
+
+local Tab = Window:CreateTab("Main", 4483362458)
+
+-- Services
 local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Camera = workspace.CurrentCamera
-local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
 
-local LocalPlayer = Players.LocalPlayer
-local UI_KEY = Enum.KeyCode.RightShift
-local ESP_REFRESH = 0.1
-
--- ================= GUI =================
-local gui = Instance.new("ScreenGui")
-gui.Name = "AIMBOT_ESP_UI"
-gui.ResetOnSpawn = false
-if syn and syn.protect_gui then
-    syn.protect_gui(gui)
-end
-gui.Parent = CoreGui
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0,240,0,200)
-frame.Position = UDim2.new(0.5,-120,0.15,0)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.Active = true
-frame.Draggable = true
-
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
-
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,40)
-title.BackgroundTransparency = 1
-title.Text = "AIMBOT + ESP"
-title.TextColor3 = Color3.new(1,1,1)
-title.TextScaled = true
-
-local hideBtn = Instance.new("TextButton", frame)
-hideBtn.Size = UDim2.new(0,50,0,25)
-hideBtn.Position = UDim2.new(1,-55,0,8)
-hideBtn.Text = "HIDE"
-
-local aimbotBtn = Instance.new("TextButton", frame)
-aimbotBtn.Size = UDim2.new(0.85,0,0,40)
-aimbotBtn.Position = UDim2.new(0.075,0,0.35,0)
-aimbotBtn.Text = "AIMBOT : OFF"
-
-local espBtn = Instance.new("TextButton", frame)
-espBtn.Size = UDim2.new(0.85,0,0,40)
-espBtn.Position = UDim2.new(0.075,0,0.6,0)
-espBtn.Text = "ESP : OFF"
-
--- ================= STATE =================
-local aimbotEnabled = false
-local espEnabled = false
-local espObjects = {}
+local enabled = false
 
 -- ================= VISIBILITY CHECK =================
-local function isVisible(head)
+local function isVisible(part)
     local origin = Camera.CFrame.Position
-    local direction = head.Position - origin
-
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {LocalPlayer.Character}
-    params.FilterType = Enum.RaycastFilterType.Blacklist
-    params.IgnoreWater = true
-
-    local result = Workspace:Raycast(origin, direction, params)
-    return result and result.Instance:IsDescendantOf(head.Parent)
+    local direction = (part.Position - origin)
+    local ray = Ray.new(origin, direction)
+    local hit = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character})
+    return hit == part or hit and hit:IsDescendantOf(part.Parent)
 end
 
--- ================= AIMBOT =================
+-- ================= SNAPHEAD METHOD =================
 local function getClosestVisibleHead()
     local closest, shortest = nil, math.huge
     local mousePos = UserInputService:GetMouseLocation()
@@ -79,10 +40,12 @@ local function getClosestVisibleHead()
         if plr ~= LocalPlayer and plr.Character then
             local head = plr.Character:FindFirstChild("Head")
             local hum = plr.Character:FindFirstChild("Humanoid")
+
             if head and hum and hum.Health > 0 and isVisible(head) then
                 local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+
                 if onScreen then
-                    local dist = (Vector2.new(pos.X,pos.Y) - mousePos).Magnitude
+                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
                     if dist < shortest then
                         shortest = dist
                         closest = head
@@ -95,63 +58,108 @@ local function getClosestVisibleHead()
     return closest
 end
 
+-- ================= LOOP SNAPHEAD =================
 RunService.RenderStepped:Connect(function()
-    if not aimbotEnabled then return end
+    if not enabled then return end
+
     local head = getClosestVisibleHead()
     if head then
         Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
     end
 end)
 
--- ================= ESP =================
-local function applyESP(player)
-    if player == LocalPlayer then return end
-    if not player.Character then return end
-
-    if espObjects[player] then
-        espObjects[player]:Destroy()
+-- ================= TOGGLE MAIN =================
+Tab:CreateToggle({
+    Name = "SnapHead",
+    CurrentValue = false,
+    Callback = function(Value)
+        enabled = Value
     end
+})
 
-    local hl = Instance.new("Highlight")
-    hl.FillColor = Color3.fromRGB(255,0,0)
-    hl.OutlineColor = Color3.new(1,1,1)
-    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    hl.Adornee = player.Character
-    hl.Parent = player.Character
+-- ================= TAB VISUAL =================
+local Tab2 = Window:CreateTab("Visual", 4483362458)
 
-    espObjects[player] = hl
+-- ================= ESPBOX METHOD =================
+local ESPBoxes = {}
+local ESPEnabled = false
+
+local function createBox()
+    local box = Drawing.new("Quad")
+    box.Thickness = 1
+    box.Transparency = 1
+    box.Color = Color3.fromRGB(255, 0, 0)
+    box.Visible = false
+    return box
 end
 
-task.spawn(function()
-    while true do
-        if espEnabled then
-            for _, plr in ipairs(Players:GetPlayers()) do
-                applyESP(plr)
+local function removeBox(player)
+    local info = ESPBoxes[player]
+    if info then
+        if info.conn then info.conn:Disconnect() end
+        if info.box then info.box:Remove() end
+        ESPBoxes[player] = nil
+    end
+end
+
+local function addESP(player)
+    if player == LocalPlayer or ESPBoxes[player] then return end
+
+    local box = createBox()
+    local conn = RunService.RenderStepped:Connect(function()
+        if not ESPEnabled then box.Visible = false return end
+
+        local char = player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not char or not hrp then box.Visible = false return end
+
+        local pos, visible = Camera:WorldToViewportPoint(hrp.Position)
+        if not visible then box.Visible = false return end
+
+        local height = 3
+        local width = 2
+
+        local TL = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(-width, height, 0))
+        local TR = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(width, height, 0))
+        local BR = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(width, -height, 0))
+        local BL = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(-width, -height, 0))
+
+        box.PointA = Vector2.new(TL.X, TL.Y)
+        box.PointB = Vector2.new(TR.X, TR.Y)
+        box.PointC = Vector2.new(BR.X, BR.Y)
+        box.PointD = Vector2.new(BL.X, BL.Y)
+        box.Visible = true
+    end)
+
+    ESPBoxes[player] = {
+        box = box,
+        conn = conn
+    }
+
+    player.CharacterAdded:Connect(function()
+        task.wait(1)
+        removeBox(player)
+        addESP(player)
+    end)
+end
+
+for _, plr in ipairs(Players:GetPlayers()) do
+    addESP(plr)
+end
+
+Players.PlayerAdded:Connect(addESP)
+Players.PlayerRemoving:Connect(removeBox)
+
+-- ================= TOGGLE ESPBOX =================
+Tab2:CreateToggle({
+    Name = "ESP Box",
+    CurrentValue = false,
+    Callback = function(Value)
+        ESPEnabled = Value
+        if not Value then
+            for _, info in pairs(ESPBoxes) do
+                if info.box then info.box.Visible = false end
             end
         end
-        task.wait(ESP_REFRESH)
     end
-end)
-
--- ================= UI EVENTS =================
-aimbotBtn.MouseButton1Click:Connect(function()
-    aimbotEnabled = not aimbotEnabled
-    aimbotBtn.Text = aimbotEnabled and "AIMBOT : ON" or "AIMBOT : OFF"
-end)
-
-espBtn.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    espBtn.Text = espEnabled and "ESP : ON" or "ESP : OFF"
-end)
-
-hideBtn.MouseButton1Click:Connect(function()
-    frame.Visible = false
-end)
-
--- ================= UI TOGGLE KEY =================
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == UI_KEY then
-        frame.Visible = not frame.Visible
-    end
-end)
+})
